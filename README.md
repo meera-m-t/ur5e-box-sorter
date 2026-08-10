@@ -9,8 +9,6 @@ sizes are hardcoded: the robot re-measures the scene every run.
 
 ![demo](demo.gif)
 
-Actual mission log:
-cat > ~/projects/robot_ws/README.md << 'REOF'
 # ur5e-box-sorter
 
 Vision-guided pick-and-place sorting with a UR5e in Gazebo Harmonic (ROS 2 Jazzy).
