@@ -15,7 +15,7 @@ see 3 boxes: 2 graspable, 1 too big
   skipping 0.120 m box at (+0.52,+0.10) — wider than gripper
 --> picking box_small (0.040 m) at (+0.40,-0.12)
     grab (magic hand on)
-    released box_small into container
+    released box_small into containerde
 --> picking box_medium (0.060 m) at (+0.62,-0.08)
     grab (magic hand on)
     released box_medium into container
