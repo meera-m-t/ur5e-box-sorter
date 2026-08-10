@@ -6,6 +6,8 @@ decides which ones fit its 80 mm gripper opening, picks the graspable ones, and
 places them in a container — skipping the oversized ones. No box positions or
 sizes are hardcoded: the robot re-measures the scene every run.
 
+
+![demo](demo.gif)
 Actual mission log:
 cat > ~/projects/robot_ws/README.md << 'REOF'
 # ur5e-box-sorter
