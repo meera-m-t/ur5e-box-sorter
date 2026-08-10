@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ur_box_sorter</name>
+  <version>0.0.1</version>
+  <description>Command the Panda arm from Python</description>
+  <maintainer email="sameerah.talafha@siu.edu">Sameerah</maintainer>
+  <license>MIT</license>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>
