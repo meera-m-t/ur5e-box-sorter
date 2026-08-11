@@ -37,7 +37,7 @@ gz topic -t /gripper/detach_small -m gz.msgs.Empty -p 'unused: true' >/dev/null 
 gz topic -t /gripper/detach_medium -m gz.msgs.Empty -p 'unused: true' >/dev/null 2>&1
 echo "  boxes freed from startup weld"
 echo "=== [3c] MoveIt brain ==="
-setsid ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=ur5e use_sim_time:=true launch_rviz:=true > /tmp/moveit.log 2>&1 < /dev/null &
+setsid ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=ur5e use_sim_time:=true launch_rviz:=false > /tmp/moveit.log 2>&1 < /dev/null &
 MOVEIT_OK=0
 for i in $(seq 1 30); do
   ros2 action list 2>/dev/null | grep -q "^/move_action$" && MOVEIT_OK=1 && break
@@ -74,6 +74,13 @@ if [ -n "$CLOUD_FRAME" ]; then
   echo "  camera TF live for frame: $CLOUD_FRAME"
 else
   echo "  could not read cloud frame — cloud display will not work, tell Claude"
+fi
+echo "=== [5c] 3D cloud view window ==="
+if [ -f "$HOME/projects/robot_ws/cloud_view.rviz" ]; then
+  setsid rviz2 -d $HOME/projects/robot_ws/cloud_view.rviz > /tmp/cloudview.log 2>&1 < /dev/null &
+  echo "  3D window launching: robot + planning scene + live point cloud"
+else
+  echo "  cloud_view.rviz missing — 3D window skipped"
 fi
 echo ""
 echo "=================================================="
