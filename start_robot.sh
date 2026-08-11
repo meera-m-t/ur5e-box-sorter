@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "=== [1/5] cleaning old processes ==="
-pkill -f 'gz sim'; pkill -f ruby; pkill -f parameter_bridge; pkill -f rviz2; pkill -f ros_gz; pkill -f spawner; pkill -f controller_manager; pkill -f robot_state_publisher; pkill -f rqt; pkill -f joint_state_publisher
+pkill -f 'gz sim'; pkill -f ruby; pkill -f parameter_bridge; pkill -f rviz2; pkill -f ros_gz; pkill -f spawner; pkill -f controller_manager; pkill -f robot_state_publisher; pkill -f rqt; pkill -f joint_state_publisher; pkill -f static_transform_publisher; pkill -f move_group; pkill -f ur_moveit
 sleep 3
 
 echo "=== [2/5] EGL -> NVIDIA driver (bypassing mesa) ==="
@@ -17,7 +17,7 @@ if ! grep -q rgbd_camera "$HOME/projects/robot_ws/ur_sensor_world.sdf"; then
 fi
 
 echo "=== [3/5] launching gazebo + arm (log: /tmp/t1.log) ==="
-setsid ros2 launch ur_simulation_gz ur_sim_control.launch.py ur_type:=ur5e description_file:=$HOME/projects/robot_ws/ur5e_gripper.urdf.xacro controllers_file:=$HOME/projects/robot_ws/ur_gripper_controllers.yaml \
+setsid ros2 launch ur_simulation_gz ur_sim_control.launch.py ur_type:=ur5e launch_rviz:=false description_file:=$HOME/projects/robot_ws/ur5e_gripper.urdf.xacro controllers_file:=$HOME/projects/robot_ws/ur_gripper_controllers.yaml \
   world_file:=$HOME/projects/robot_ws/ur_sensor_world.sdf > /tmp/t1.log 2>&1 < /dev/null &
 echo -n "  waiting for arm controllers"
 for i in $(seq 1 60); do
@@ -36,6 +36,16 @@ ros2 run controller_manager spawner gripper_position_controller > /tmp/gripspawn
 gz topic -t /gripper/detach_small -m gz.msgs.Empty -p 'unused: true' >/dev/null 2>&1
 gz topic -t /gripper/detach_medium -m gz.msgs.Empty -p 'unused: true' >/dev/null 2>&1
 echo "  boxes freed from startup weld"
+echo "=== [3c] MoveIt brain ==="
+setsid ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=ur5e use_sim_time:=true launch_rviz:=true > /tmp/moveit.log 2>&1 < /dev/null &
+MOVEIT_OK=0
+for i in $(seq 1 30); do
+  ros2 action list 2>/dev/null | grep -q "^/move_action$" && MOVEIT_OK=1 && break
+  sleep 1
+done
+if [ "$MOVEIT_OK" = "1" ]; then echo "  ✓ move_group ready (/move_action live)"; else
+  echo "  ✗ MoveIt never came up — tail /tmp/moveit.log and paste to Claude"; exit 1
+fi
 echo "=== [4/5] camera gate ==="
 CAMERA_OK=0
 for i in $(seq 1 10); do
@@ -55,6 +65,16 @@ setsid ros2 run ros_gz_bridge parameter_bridge \
  /rgbd/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked \
  /rgbd/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo > /tmp/bridge.log 2>&1 < /dev/null &
 sleep 2
+echo "=== [5b] camera frame TF (for the RViz 3D cloud) ==="
+CLOUD_FRAME=$(timeout 5 ros2 topic echo /rgbd/points --field header.frame_id --once 2>/dev/null | head -1)
+if [ -n "$CLOUD_FRAME" ]; then
+  setsid ros2 run tf2_ros static_transform_publisher --x 0.5 --y 0 --z 0.6 \
+    --qx 0 --qy 0.7071068 --qz 0 --qw 0.7071068 \
+    --frame-id base_link --child-frame-id "$CLOUD_FRAME" > /tmp/camtf.log 2>&1 < /dev/null &
+  echo "  camera TF live for frame: $CLOUD_FRAME"
+else
+  echo "  could not read cloud frame — cloud display will not work, tell Claude"
+fi
 echo ""
 echo "=================================================="
 echo "  ROBOT READY — this terminal is FREE again."

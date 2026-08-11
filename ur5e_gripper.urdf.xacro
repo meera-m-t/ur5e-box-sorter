@@ -85,6 +85,10 @@
     <visual><origin xyz="0 0 0.03" rpy="0 0 0"/>
       <geometry><box size="0.02 0.012 0.06"/></geometry>
       <material name="gripper_dark"><color rgba="0.15 0.15 0.15 1"/></material></visual>
+    <collision>
+      <origin xyz="0 0 0.035" rpy="0 0 0"/>
+      <geometry><box size="0.018 0.010 0.048"/></geometry>
+    </collision>
     <inertial><mass value="0.02"/>
       <inertia ixx="5e-6" iyy="5e-6" izz="5e-6" ixy="0" ixz="0" iyz="0"/></inertial>
   </link>
@@ -99,6 +103,10 @@
     <visual><origin xyz="0 0 0.03" rpy="0 0 0"/>
       <geometry><box size="0.02 0.012 0.06"/></geometry>
       <material name="gripper_dark"><color rgba="0.15 0.15 0.15 1"/></material></visual>
+    <collision>
+      <origin xyz="0 0 0.035" rpy="0 0 0"/>
+      <geometry><box size="0.018 0.010 0.048"/></geometry>
+    </collision>
     <inertial><mass value="0.02"/>
       <inertia ixx="5e-6" iyy="5e-6" izz="5e-6" ixy="0" ixz="0" iyz="0"/></inertial>
   </link>
@@ -158,4 +166,13 @@
     tf_prefix="$(arg tf_prefix)"
     transmission_hw_interface="$(arg transmission_hw_interface)"
   />
+
+  <gazebo reference="finger_left">
+    <mu1>1.5</mu1>
+    <mu2>1.5</mu2>
+  </gazebo>
+  <gazebo reference="finger_right">
+    <mu1>1.5</mu1>
+    <mu2>1.5</mu2>
+  </gazebo>
 </robot>
