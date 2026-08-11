@@ -6,8 +6,9 @@ from control_msgs.action import FollowJointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
 from sensor_msgs.msg import PointCloud2, JointState
 from sensor_msgs_py import point_cloud2
+from std_msgs.msg import Float64MultiArray
 
-# ---------- kinematics (verified against sim tf: home -> 0.001,0.233,1.079) ----
+# ---------- kinematics (verified against sim tf, home -> 0.001,0.233,1.079) ---
 D1, A2, A3, D4, D5, D6 = 0.1625, -0.425, -0.3922, 0.1333, 0.0997, 0.0996
 ALPHA = [np.pi/2, 0, 0, np.pi/2, -np.pi/2, 0]
 A = [0, A2, A3, 0, 0, 0]
@@ -44,7 +45,7 @@ def ik(target, seed, iters=400):
         q = q + np.clip(J.T @ np.linalg.solve(J @ J.T + lam*np.eye(5), e), -0.2, 0.2)
         q = np.arctan2(np.sin(q), np.cos(q))
     T = fk(q)
-    return q, float(np.linalg.norm(tgt - T[:3, 3])), float(np.linalg.norm(np.array([0,0,-1.0]) - T[:3, 2]))
+    return q, float(np.linalg.norm(tgt - T[:3, 3])), float(np.linalg.norm(np.array([0, 0, -1.0]) - T[:3, 2]))
 
 def solve_chained(target, seed):
     q, pe, ae = ik(target, seed)
@@ -58,7 +59,7 @@ def solve_chained(target, seed):
             return q
     return None
 
-# ---------- perception (same tested clustering as measure_boxes) --------------
+# ---------- perception --------------------------------------------------------
 GRIPPER, MARGIN, CELL, MINPTS = 0.08, 0.02, 0.01, 100
 CAM = np.array([0.5, 0.0, 0.6])
 KNOWN = {"box_small": (0.40, -0.12), "box_medium": (0.62, -0.08), "box_large": (0.52, 0.10)}
@@ -101,6 +102,16 @@ def model_name(b):
             return name
     return None
 
+# ---------- gripper hardware helpers ------------------------------------------
+FINGER_GAP_OPEN = 0.080      # inner faces when fingers at 0
+FINGER_MAX_TRAVEL = 0.028
+
+def weld(name, on):
+    suffix = "small" if "small" in name else "medium"
+    topic = f"/gripper/attach_{suffix}" if on else f"/gripper/detach_{suffix}"
+    subprocess.run(["gz", "topic", "-t", topic, "-m", "gz.msgs.Empty",
+                    "-p", "unused: true"], capture_output=True)
+
 # ---------- the mission -------------------------------------------------------
 LIFT = (0.45, 0.00, 0.40)
 CONT_XY = (0.00, 0.45)
@@ -113,20 +124,29 @@ class Sorter(Node):
         self.create_subscription(JointState, "/joint_states", self.on_js, 20)
         self.client = ActionClient(self, FollowJointTrajectory,
             "/scaled_joint_trajectory_controller/follow_joint_trajectory")
-        self.carry = None   # (model_name, height) while holding
+        self.grip_pub = self.create_publisher(
+            Float64MultiArray, "/gripper_position_controller/commands", 5)
 
     def on_cloud(self, msg):
         self.cloud = msg
 
     def on_js(self, msg):
         q = np.zeros(6)
+        names = list(msg.name)
         for i, jn in enumerate(JOINTS):
-            q[i] = msg.position[list(msg.name).index(jn)]
+            q[i] = msg.position[names.index(jn)]
         self.qnow = q
-        if self.carry is not None:
-            name, h = self.carry
-            p = fk(q)[:3, 3]
-            set_pose(name, p[0], p[1], p[2] - 0.02 - h/2)
+
+    def grip_to_width(self, width):
+        travel = (FINGER_GAP_OPEN - width) / 2.0 - 0.0005
+        travel = float(np.clip(travel, 0.0, FINGER_MAX_TRAVEL))
+        self.grip_pub.publish(Float64MultiArray(data=[travel, travel]))
+        time.sleep(0.8)
+        return travel
+
+    def grip_open(self):
+        self.grip_pub.publish(Float64MultiArray(data=[0.0, 0.0]))
+        time.sleep(0.5)
 
     def move(self, q, seconds=3.0):
         goal = FollowJointTrajectory.Goal()
@@ -145,35 +165,24 @@ class Sorter(Node):
             gh.get_result_async().add_done_callback(on_result)
         self.client.send_goal_async(goal).add_done_callback(on_accept)
         done.wait(timeout=seconds + 6.0)
-        time.sleep(0.4)
-
-_last_set = [0.0]
-def set_pose(name, x, y, z, throttle=0.09):
-    now = time.monotonic()
-    if now - _last_set[0] < throttle:
-        return
-    _last_set[0] = now
-    subprocess.Popen(["gz", "service", "-s", "/world/empty/set_pose",
-        "--reqtype", "gz.msgs.Pose", "--reptype", "gz.msgs.Boolean",
-        "--timeout", "300", "--req",
-        f'name: "{name}", position: {{x: {x:.4f}, y: {y:.4f}, z: {z:.4f}}}'],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(0.3)
 
 def mission(node: Sorter):
     log = node.get_logger()
     log.info("waiting for arm controller...")
     if not node.client.wait_for_server(timeout_sec=10.0):
-        log.error("NO ARM CONTROLLER — is T1 running and 'Successfully switched controllers' shown?")
+        log.error("NO ARM CONTROLLER — is start_robot.sh green?")
         return
     log.info("waiting for camera + joint states...")
     t0 = time.time()
     while node.cloud is None or node.qnow is None:
         time.sleep(0.2)
         if time.time() - t0 > 10.0:
-            log.error(f"MISSING after 10s: camera_cloud={node.cloud is None}  joints={node.qnow is None}")
-            log.error("camera missing -> is T2 bridge running? | joints missing -> is sim PLAYING (press ▶)?")
+            log.error(f"MISSING: camera={node.cloud is None} joints={node.qnow is None}")
             return
     log.info("all inputs ready")
+    node.grip_open()
+    weld("box_small", False); weld("box_medium", False)   # defensive un-weld
     pts = point_cloud2.read_points_numpy(node.cloud, field_names=["x","y","z"], skip_nans=True)
     pts = pts[np.isfinite(pts).all(axis=1)]
     boxes = find_boxes(pts)
@@ -188,32 +197,39 @@ def mission(node: Sorter):
         if name is None:
             log.warn(f"  unknown model near ({b['x']:.2f},{b['y']:.2f}), skipping"); continue
         log.info(f"--> picking {name} ({b['w']:.3f} m) at ({b['x']:+.2f},{b['y']:+.2f})")
-        wps = [("lift", LIFT, 3.0), ("hover", (b["x"], b["y"], 0.25), 3.0),
-               ("descend", (b["x"], b["y"], b["top"] + 0.02), 2.5)]
-        for label, tgt, secs in wps:
+        plan = [("lift", LIFT, 3.0),
+                ("hover", (b["x"], b["y"], 0.25), 3.0),
+                ("descend", (b["x"], b["y"], b["top"] + 0.05), 2.5)]
+        for label, tgt, secs in plan:
             q2 = solve_chained(tgt, q)
             if q2 is None:
                 log.error(f"IK failed at {label} — aborting safely"); return
             node.move(q2, secs); q = q2
-        log.info("    grab (magic hand on)")
-        node.carry = (name, b["h"])
-        for label, tgt, secs in [("raise", (b["x"], b["y"], 0.28), 2.5),
-                                 ("lift", LIFT, 3.0),
-                                 ("container", (CONT_XY[0], CONT_XY[1], 0.35), 3.5)]:
+        travel = node.grip_to_width(b["w"])
+        log.info(f"    fingers closed to {FINGER_GAP_OPEN - 2*travel:.3f} m gap")
+        weld(name, True)
+        log.info(f"    WELDED {name} to hand")
+        plan = [("raise", (b["x"], b["y"], 0.30), 2.5),
+                ("lift", LIFT, 3.0),
+                ("container_hover", (CONT_XY[0] + slot, CONT_XY[1], 0.35), 3.5),
+                ("container_lower", (CONT_XY[0] + slot, CONT_XY[1], 0.22), 2.0)]
+        for label, tgt, secs in plan:
             q2 = solve_chained(tgt, q)
             if q2 is None:
-                log.error(f"IK failed at {label} — aborting"); node.carry = None; return
+                log.error(f"IK failed at {label} — releasing here"); break
             node.move(q2, secs); q = q2
-        node.carry = None
-        time.sleep(0.2)
-        set_pose(name, CONT_XY[0] + slot, CONT_XY[1], b["h"]/2 + 0.02, throttle=0.0)
-        log.info(f"    released {name} into container")
+        weld(name, False)
+        node.grip_open()
+        log.info(f"    released {name} — dropped into container")
+        q2 = solve_chained((CONT_XY[0] + slot, CONT_XY[1], 0.35), q)
+        if q2 is not None:
+            node.move(q2, 2.0); q = q2
         slot += 0.06
     q2 = solve_chained((0.30, 0.10, 0.45), q)
     if q2 is not None:
         node.move(q2, 3.0)
     node.move(HOME, 3.0)
-    log.info(f"MISSION COMPLETE: {len(grasp)} boxes sorted into container, "
+    log.info(f"MISSION COMPLETE: {len(grasp)} boxes gripped, welded, and sorted; "
              f"{len(skip)} correctly rejected")
 
 def main():

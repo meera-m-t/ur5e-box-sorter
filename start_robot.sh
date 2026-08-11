@@ -17,7 +17,7 @@ if ! grep -q rgbd_camera "$HOME/projects/robot_ws/ur_sensor_world.sdf"; then
 fi
 
 echo "=== [3/5] launching gazebo + arm (log: /tmp/t1.log) ==="
-setsid ros2 launch ur_simulation_gz ur_sim_control.launch.py ur_type:=ur5e \
+setsid ros2 launch ur_simulation_gz ur_sim_control.launch.py ur_type:=ur5e description_file:=$HOME/projects/robot_ws/ur5e_gripper.urdf.xacro controllers_file:=$HOME/projects/robot_ws/ur_gripper_controllers.yaml \
   world_file:=$HOME/projects/robot_ws/ur_sensor_world.sdf > /tmp/t1.log 2>&1 < /dev/null &
 echo -n "  waiting for arm controllers"
 for i in $(seq 1 60); do
@@ -30,6 +30,12 @@ if ! grep -q "Successfully switched controllers" /tmp/t1.log; then
 fi
 echo "  ✓ arm controllers active"
 
+echo "=== [3b] gripper controller + freeing boxes ==="
+ros2 run controller_manager spawner gripper_position_controller > /tmp/gripspawn.log 2>&1 \
+  && echo "  gripper controller active" || echo "  GRIPPER CONTROLLER FAILED (see /tmp/gripspawn.log)"
+gz topic -t /gripper/detach_small -m gz.msgs.Empty -p 'unused: true' >/dev/null 2>&1
+gz topic -t /gripper/detach_medium -m gz.msgs.Empty -p 'unused: true' >/dev/null 2>&1
+echo "  boxes freed from startup weld"
 echo "=== [4/5] camera gate ==="
 CAMERA_OK=0
 for i in $(seq 1 10); do
@@ -54,6 +60,6 @@ echo "=================================================="
 echo "  ROBOT READY — this terminal is FREE again."
 echo "  Run the demo right here:"
 echo "    source install/setup.bash"
-echo "    ros2 run panda_control sort_boxes"
+echo "    ros2 run ur_box_sorter sort_boxes"
 echo "  Stop the robot anytime:  bash stop_robot.sh"
 echo "=================================================="
