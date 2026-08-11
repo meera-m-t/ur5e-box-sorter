@@ -12,16 +12,18 @@ box in the approach corridor and the planner detours around it.
 
 ## Demo
 
-**v2 — custom adaptive gripper + weld-based hold:**
-
-![demo v2](demo_v2.gif)
-
 **v1 — first complete mission (magic-hand hold) — ✅ retired milestone:**
 
 ![demo v1](demo.gif)
 
-v3 mission log — the adversarial ("roadblock") run:
+**v2 — custom adaptive gripper + weld-based hold:**
 
+![demo v2](demo_v2.gif)
+
+
+
+** v3 mission log — the adversarial ("roadblock") run:**
+![demo v3](demo_v3.gif)
 ```
 ROADBLOCK: big blue box parked in the approach corridor (0.51,-0.10)
   [scene] 3 obstacles live in planner
