@@ -1,0 +1,135 @@
+Panels:
+- Class: rviz_common/Displays
+  Name: Displays
+  Help Height: 70
+  Property Tree Widget:
+    Expanded:
+    - /Camera Cloud1/Status1
+  Tree Height: 500
+- Class: rviz_common/Views
+  Name: Views
+  Expanded:
+  - /Current View1
+Visualization Manager:
+  Class: ''
+  Global Options:
+    Background Color: 35; 38; 41
+    Fixed Frame: base_link
+    Frame Rate: 30
+  Displays:
+  - Class: rviz_default_plugins/Grid
+    Enabled: true
+    Name: Grid
+    Cell Size: 0.25
+    Plane Cell Count: 12
+    Reference Frame: <Fixed Frame>
+    Color: 100; 100; 105
+    Alpha: 0.4
+    Line Style:
+      Value: Lines
+      Line Width: 0.03
+    Normal Cell Count: 0
+    Offset:
+      X: 0.35
+      Y: 0
+      Z: 0
+    Plane: XY
+  - Class: rviz_default_plugins/RobotModel
+    Enabled: true
+    Name: Robot
+    Description Source: Topic
+    Description Topic:
+      Depth: 5
+      Durability Policy: Transient Local
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /robot_description
+    Visual Enabled: true
+    Collision Enabled: false
+    Alpha: 1.0
+    TF Prefix: ''
+    Update Interval: 0
+    Mass Properties:
+      Inertia: false
+      Mass: false
+  - Class: moveit_rviz_plugin/PlanningScene
+    Enabled: true
+    Name: Planning Scene
+    Move Group Namespace: ''
+    Planning Scene Topic: /monitored_planning_scene
+    Robot Description: robot_description
+    Scene Geometry:
+      Scene Alpha: 0.85
+      Scene Color: 50; 230; 50
+      Scene Display Time: 0.01
+      Show Scene Geometry: true
+      Voxel Coloring: Z-Axis
+      Voxel Rendering: Occupied Voxels
+    Scene Robot:
+      Attached Body Color: 150; 50; 150
+      Robot Alpha: 0.0
+      Show Robot Collision: false
+      Show Robot Visual: false
+  - Class: rviz_default_plugins/PointCloud2
+    Enabled: true
+    Name: Camera Cloud
+    Topic:
+      Depth: 5
+      Durability Policy: Volatile
+      Filter size: 10
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Value: /rgbd/points
+    Style: Squares
+    Size (Pixels): 4
+    Size (m): 0.004
+    Color Transformer: RGB8
+    Position Transformer: XYZ
+    Alpha: 1.0
+    Decay Time: 0
+    Selectable: true
+    Use Fixed Frame: true
+    Use rainbow: true
+    Invert Rainbow: false
+    Autocompute Intensity Bounds: true
+    Autocompute Value Bounds:
+      Max Value: 10
+      Min Value: -10
+      Value: true
+    Axis: Z
+    Channel Name: intensity
+    Max Color: 255; 255; 255
+    Min Color: 0; 0; 0
+    Max Intensity: 4096
+    Min Intensity: 0
+    Queue Size: 10
+  Enabled: true
+  Tools:
+  - Class: rviz_default_plugins/MoveCamera
+  - Class: rviz_default_plugins/Select
+  - Class: rviz_default_plugins/FocusCamera
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 1.6
+      Focal Point:
+        X: 0.35
+        Y: 0.1
+        Z: 0.05
+      Pitch: 0.62
+      Yaw: 5.5
+      Near Clip Distance: 0.01
+      Invert Z Axis: false
+      Target Frame: <Fixed Frame>
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05
+    Saved: null
+Window Geometry:
+  Height: 900
+  Width: 1400
+  X: 60
+  Y: 60
+  Displays:
+    collapsed: false
+  Views:
+    collapsed: true
