@@ -12,30 +12,42 @@ box in the approach corridor and the planner detours around it.
 
 ## Demo
 
-**v1 — first complete mission (magic-hand hold) — ✅ retired milestone:**
+**v1 — first complete mission (magic-hand hold) — ✅ retired milestone.**
+Historical recording; the magic-hand code no longer exists in the repo.
 
 ![demo v1](demo.gif)
 
-**v2 — custom adaptive gripper + weld-based hold:**
+**v2 — custom adaptive gripper + weld-based hold.** This behavior is today's
+default mission:
+
+    bash start_robot.sh
+    ros2 run ur_box_sorter sort_boxes
 
 ![demo v2](demo_v2.gif)
 
+**v3 — collision-aware planning with the live 3D reconstruction view.**
+Gazebo (the world) beside RViz (the robot, the planner's green collision
+blocks, and the camera's colored point cloud). One command opens all windows;
+the adversarial run parks the oversized box in the corridor:
 
-
-**v3 mission log — the adversarial ("roadblock") run:**
+    bash start_robot.sh
+    ros2 run ur_box_sorter sort_boxes --roadblock     # or: --shuffle
 
 ![demo v3](demo_v3.gif)
 
+v3 mission log (roadblock run):
 
 ```
 ROADBLOCK: big blue box parked in the approach corridor (0.51,-0.10)
   [scene] 3 obstacles live in planner
 see 3 boxes: 2 graspable, 1 too big
-  skipping 0.120 m box at (+0.52,+0.10) — wider than gripper
---> picking box_small (0.040 m) at (+0.40,-0.12)
-    grab (magic hand on)
-    released box_small into containerde
---> picking box_medium (0.060 m) at (+0.62,-0.08)
+  skipping 0.120 m box at (+0.51,-0.10) — wider than gripper
+--> picking box_small (0.040 m) at (+0.40,-0.12)  [rescanned]
+    fingers closed to 0.041 m gap
+    WELDED box_small to hand
+    released box_small — dropped into container
+  [scene] 2 obstacles live in planner
+--> picking box_medium (0.060 m) at (+0.62,-0.08)  [rescanned]
     fingers closed to 0.061 m gap
     WELDED box_medium to hand
     released box_medium — dropped into container
