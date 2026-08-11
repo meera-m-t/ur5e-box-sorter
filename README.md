@@ -22,8 +22,11 @@ box in the approach corridor and the planner detours around it.
 
 
 
-** v3 mission log — the adversarial ("roadblock") run:**
+**v3 mission log — the adversarial ("roadblock") run:**
+
 ![demo v3](demo_v3.gif)
+
+
 ```
 ROADBLOCK: big blue box parked in the approach corridor (0.51,-0.10)
   [scene] 3 obstacles live in planner
