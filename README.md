@@ -26,13 +26,11 @@ v3 mission log — the adversarial ("roadblock") run:
 ROADBLOCK: big blue box parked in the approach corridor (0.51,-0.10)
   [scene] 3 obstacles live in planner
 see 3 boxes: 2 graspable, 1 too big
-  skipping 0.120 m box at (+0.51,-0.10) — wider than gripper
---> picking box_small (0.040 m) at (+0.40,-0.12)  [rescanned]
-    fingers closed to 0.041 m gap
-    WELDED box_small to hand
-    released box_small — dropped into container
-  [scene] 2 obstacles live in planner
---> picking box_medium (0.060 m) at (+0.62,-0.08)  [rescanned]
+  skipping 0.120 m box at (+0.52,+0.10) — wider than gripper
+--> picking box_small (0.040 m) at (+0.40,-0.12)
+    grab (magic hand on)
+    released box_small into containerde
+--> picking box_medium (0.060 m) at (+0.62,-0.08)
     fingers closed to 0.061 m gap
     WELDED box_medium to hand
     released box_medium — dropped into container
