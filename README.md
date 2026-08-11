@@ -15,7 +15,7 @@ box in the approach corridor and the planner detours around it.
 **v1 — first complete mission (magic-hand hold) — ✅ retired milestone.**
 Historical recording; the magic-hand code no longer exists in the repo.
 
-![demo v1](demo.gif)
+![demo v1](demo_v1.gif)
 
 **v2 — custom adaptive gripper + weld-based hold.** This behavior is today's
 default mission:
