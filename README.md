@@ -103,7 +103,7 @@ MoveIt RViz window next to the planning scene.
 
 ## Layout
 
-    ur_sensor_world.sdf           scene: boxes (with friction), container, camera
+    ur_sensor_world.sdf           scene: boxes, container, camera (physics: bullet-featherstone)
     ur5e_gripper.urdf.xacro       UR5e + gripper + weld plugins + contact pads
     ur_gripper_controllers.yaml   arm + gripper controllers (sim-tuned tolerances)
     start_robot.sh / stop_robot.sh   gated bring-up / teardown
@@ -120,10 +120,13 @@ MoveIt RViz window next to the planning scene.
       layout survives anywhere in the code
 - [x] MoveIt collision-aware planning — perception-fed planning scene,
       obstacle detours proven under the `--roadblock` adversarial test
-- [ ] True contact-physics grasping — **attempted and parked**: collision pads
-      verified present in the robot description (MoveIt sees and uses them),
-      but the dartsim physics side never registers them; a physics-engine swap
-      (bullet-featherstone) is the queued next experiment. Field notes below.
+- [ ] True contact-physics grasping — **attempted and closed (documented)**:
+      finger collision pads verified through every software layer (xacro,
+      expanded URDF, live `/robot_description`, MoveIt's model) and never
+      demonstrably felt by physics under either engine tried (dartsim and
+      bullet-featherstone), across position- and effort-mode grips. The
+      weld-based hold remains the production answer; the full investigation —
+      including the probes that lied — is in the field notes.
 
 ## Field notes
 
@@ -153,10 +156,30 @@ MoveIt RViz window next to the planning scene.
   obstacle, the *next* plan can fail with START_STATE_IN_COLLISION (-10).
   During the high carry phase, clear the (physically unreachable) box
   obstacles; the next scan restores them.
-- The ghost fingers: collision pads present and correct in the expanded URDF
-  and the live `/robot_description` — and never felt by dartsim physics
-  (fingers pass through boxes; dartsim also logs `collision ... couldn't be
-  created` for every arm mesh). Unresolved on this stack; bullet-featherstone
-  swap queued. Three CLI probes lied along the way (latched-topic QoS,
-  128-char echo truncation, line-vs-occurrence grep) — verify your probes
-  before trusting their zeros.
+- The ghost fingers (full saga): collision pads present and correct in the
+  xacro, the expanded URDF, the live `/robot_description`, and MoveIt's model
+  — and never demonstrably felt by physics. Under dartsim, fingers pass
+  through boxes and the log admits `collision ... couldn't be created` for
+  every arm mesh. Swapping engines to bullet-featherstone (one line in the
+  world file; on ROS 2 Jazzy the plugin lives vendored at
+  `/opt/ros/jazzy/opt/gz_physics_vendor/`) loaded cleanly and runs the full
+  mission — but the pads stayed silent there too, in both position and effort
+  grip modes (the effort-command path on bullet-featherstone appears to apply
+  no force at all). Closed as a stack limitation after a multi-probe
+  investigation.
+- Five probes lied during that hunt: latched-topic QoS returning silence,
+  128-char echo truncation, line-vs-occurrence grep, a `head -4` eating the
+  answer — and the subtlest one: **the command echo**. A position-controlled
+  finger that "settles at 0.032 m" when commanded to 0.032 m has proven
+  nothing; we briefly celebrated contact that was our own setpoint reflected
+  back. Always compare the settled value against the *command*, not the
+  expectation. (One genuinely unexplained datum survives: a single 8.9 mm box
+  displacement during one squeeze — never reproduced.)
+- Cluster bridges: with 1 cm-grid connected-components clustering, a single
+  noise point between two nearby boxes fuses them into one "too big" blob.
+  Fix: a cell only counts as occupied with >= 3 points, and sparse-cell points
+  are discarded — one stray pixel can no longer bridge clusters.
+- Stale stages: test scripts that park props (a box under the gripper) poison
+  the next mission's perception — two boxes physically touching *are* one
+  blob, correctly. Always restart the world between a test script and a
+  mission run.

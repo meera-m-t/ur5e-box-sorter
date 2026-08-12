@@ -68,7 +68,9 @@ def find_boxes(pts):
         return []
     uv = above[:, lat]; cells = np.floor((uv - uv.min(0)) / CELL).astype(np.int64)
     W = int(cells[:, 1].max()) + 1; keys = cells[:, 0]*W + cells[:, 1]
-    occ = set(int(k) for k in np.unique(keys)); lab = {}; n = 0
+    uniq, cnts = np.unique(keys, return_counts=True)
+    occ = set(int(k) for k, c in zip(uniq, cnts) if c >= 3)   # kill 1-pixel bridges
+    lab = {}; n = 0
     for k in occ:
         if k in lab: continue
         n += 1; stack = [k]; lab[k] = n
@@ -79,7 +81,7 @@ def find_boxes(pts):
                     nb = (ci+di)*W + (cj+dj)
                     if (di or dj) and 0 <= cj+dj < W and nb in occ and nb not in lab:
                         lab[nb] = n; stack.append(nb)
-    pl = np.array([lab[int(k)] for k in keys]); out = []
+    pl = np.array([lab.get(int(k), 0) for k in keys]); out = []   # 0 = sparse-cell points, discarded
     for L in range(1, n+1):
         sel = above[pl == L]
         if sel.shape[0] < MINPTS: continue

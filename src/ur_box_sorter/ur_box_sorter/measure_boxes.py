@@ -25,7 +25,8 @@ def find_boxes(pts):
     cells = np.floor((uv - mins) / CELL).astype(np.int64)
     W = int(cells[:, 1].max()) + 1
     keys = cells[:, 0] * W + cells[:, 1]
-    occupied = set(int(k) for k in np.unique(keys))
+    uniq, cnts = np.unique(keys, return_counts=True)
+    occupied = set(int(k) for k, c in zip(uniq, cnts) if c >= 3)
     label_of = {}
     n_labels = 0
     for k in occupied:
@@ -45,7 +46,7 @@ def find_boxes(pts):
                     if 0 <= cj + dj < W and nb in occupied and nb not in label_of:
                         label_of[nb] = n_labels
                         stack.append(nb)
-    point_labels = np.array([label_of[int(k)] for k in keys])
+    point_labels = np.array([label_of.get(int(k), 0) for k in keys])
     boxes = []
     for lbl in range(1, n_labels + 1):
         sel = above[point_labels == lbl]
